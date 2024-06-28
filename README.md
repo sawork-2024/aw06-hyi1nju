@@ -1,12 +1,72 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/IMEm063v)
-# Micro WebPoS 
-
+## 作业要求
 
 请参考spring-petclinic-rest/spring-petclinic-microserivces 将webpos项目改为微服务架构，具体要求包括：
+
 1. 至少包含独立的产品管理服务、订单管理服务以及discovery/gateway等微服务架构下需要的基础设施服务；
 2. 请将系统内的不同微服务实现不同的计算复杂度，通过压力测试实验验证对单个微服务进行水平扩展（而无需整个系统所有服务都进行水平扩展）可以提升系统性能，请给出实验报告；
 3. 请使用`RestTemplate`进行服务间访问，验证Client-side LB可行；
 4. 请注意使用断路器等机制；
 5. 如有兴趣可在kubernetes或者minikube上进行部署。
 
-请编写readme对自己的系统和实验进行详细介绍。
+请编写readme对自己的系统和实验进行详细介绍
+
+## 系统架构概述
+
+1. 注册中心/服务发现
+
+   模块名称：cloud-register
+
+   功能：该模块负责服务发现与注册，使用Spring Cloud Netflix Eureka实现。系统中的服务将注册到Eureka服务器上，其他服务可以通过注册中心进行发现和调用。
+
+2. 产品管理服务
+   模块名称：cloud-product、cloud-product-copy、cloud-product2
+
+   功能：这些模块提供了查看产品列表和选择指定产品的服务。
+cloud-product 和 cloud-product-copy：这两个模块在服务发现器上具有相同的服务名，通过水平扩展实现了产品管理服务的负载均衡。
+cloud-product2：该模块用于测试模块间相互调用服务的功能，能够调用cloud-product提供的查看产品列表服务。
+3. 订单管理服务
+
+   模块名称：cloud-cart
+
+   功能：该模块提供了订单的存储和管理服务。能够处理前端提交的订单并更新后端数据库。
+
+4. 网关服务
+
+   模块名称：cloud-gateway
+
+   功能：该模块提供了一种简单、有效的方式来路由API，并为微服务架构提供了基于过滤器的API网关服务。它负责接收客户端的请求，并将请求路由到适当的微服务，同时提供负载均衡和安全性等功能。
+
+cloud-gateway：作为系统的入口，负责将客户端请求路由到适当的微服务，并处理负载均衡和安全等功能。
+
+cloud-register：作为Eureka服务器，负责管理微服务的注册与发现。
+
+cloud-product 和 cloud-product-copy：提供产品相关服务，支持负载均衡。
+
+cloud-product2：用于测试服务间调用，调用cloud-product的服务。
+
+cloud-cart：提供订单管理服务，处理订单数据并更新数据库。
+
+
+## 测试结果
+
+* 初始测试
+
+  在仅运行一个产品管理服务实例的情况下，发送1000次请求，结果如下：
+
+  总时间：436秒
+平均响应时间：0.436秒/请求
+
+* 扩展测试
+
+  在运行两个产品管理服务实例的情况下，发送1000次请求，结果如下：
+
+  总时间：265秒
+平均响应时间：0.265秒/请求
+
+* 结果分析
+
+  性能提升：通过增加一个产品管理服务实例，总时间从436秒减少到265秒，性能提升显著。
+
+  性能瓶颈：虽然服务实例数量增加，系统性能显著提升，但并未线性减少。
+Redis 性能瓶颈可能会导致这个结果，随着请求量的增加，Redis 的性能可能成为系统的瓶颈，限制了整体性能的提升。
+服务器资源限制也可能会导致这个问题服务器的 CPU 和内存资源有限，可能无法完全支持多实例的并发处理能力。
